@@ -189,3 +189,4 @@ Project roslynProject = analyzer.AddToWorkspace(workspace);
 ```
 
 In both cases, Buildalyzer will attempt to resolve project references within the Roslyn workspace so the Roslyn projects will correctly reference each other.
+
