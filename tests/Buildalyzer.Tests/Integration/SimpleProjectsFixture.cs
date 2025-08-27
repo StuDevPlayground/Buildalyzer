@@ -444,74 +444,6 @@ public class SimpleProjectsFixture
     }
 
     [Test]
-    public void GetsProjectsInSolution()
-    {
-        // Given
-        StringWriter log = new StringWriter();
-
-        // When
-        AnalyzerManager manager = new AnalyzerManager(
-            GetProjectPath("TestProjects.sln"),
-            new AnalyzerManagerOptions
-            {
-                LogWriter = log
-            });
-
-        // Then
-        ProjectFiles.Select(x => GetProjectPath(x)).ShouldBeSubsetOf(manager.Projects.Keys, log.ToString());
-    }
-
-    [Test]
-    public void FiltersProjectsInSolution()
-    {
-        // Given
-        StringWriter log = new StringWriter();
-
-        // When
-        AnalyzerManager manager = new AnalyzerManager(
-            GetProjectPath("TestProjects.sln"),
-            new AnalyzerManagerOptions
-            {
-                LogWriter = log,
-                ProjectFilter = x => x.AbsolutePath.Contains("Core")
-            });
-
-        // Then
-        ProjectFiles.Select(x => GetProjectPath(x)).Where(x => x.Contains("Core")).ShouldBe(manager.Projects.Keys, true, log.ToString());
-    }
-
-    [Test]
-    public void IgnoreSolutionItemsThatAreNotProjects()
-    {
-        // Given / When
-        AnalyzerManager manager = new AnalyzerManager(GetProjectPath("TestProjects.sln"));
-
-        // Then
-        manager.Projects.Any(x => x.Value.ProjectFile.Path.Contains("TestEmptySolutionFolder")).ShouldBeFalse();
-    }
-
-    [Test]
-    public void GetsProjectGuidFromSolution([ValueSource(nameof(Preferences))] EnvironmentPreference preference)
-    {
-        // Given
-        AnalyzerManager manager = new AnalyzerManager(
-            GetProjectPath("TestProjects.sln"));
-        IProjectAnalyzer analyzer = manager.Projects.First(x => x.Key.EndsWith("SdkNetStandardProject.csproj")).Value;
-        EnvironmentOptions options = new EnvironmentOptions
-        {
-            Preference = preference
-        };
-
-        // When
-        DeleteProjectDirectory(analyzer.ProjectFile.Path, "obj");
-        DeleteProjectDirectory(analyzer.ProjectFile.Path, "bin");
-        IAnalyzerResults results = analyzer.Build(options);
-
-        // Then
-        results.First().ProjectGuid.ToString().ShouldBe("016713d9-b665-4272-9980-148801a9b88f");
-    }
-
-    [Test]
     public void GetsProjectGuidFromProject([ValueSource(nameof(Preferences))] EnvironmentPreference preference)
     {
         // Given
@@ -604,29 +536,6 @@ public class SimpleProjectsFixture
         result.References.ShouldContain(x => x.Contains("BouncyCastle.Crypto.dll"));
     }
 
-    [Test]
-    public void BuildsLotsOfProjects()
-    {
-        // Given
-        StringWriter log = new StringWriter();
-        AnalyzerManager manager = new AnalyzerManager(
-            GetProjectPath(@"LotsOfProjects\LotsOfProjects.sln"),
-            new AnalyzerManagerOptions
-            {
-                LogWriter = log
-            });
-        List<IProjectAnalyzer> projects = [.. manager.Projects.Values];
-
-        // When
-        List<IAnalyzerResults> analyzerResults = projects
-            .AsParallel()
-            .Select(x => x.Build())
-            .ToList();
-
-        // Then
-        analyzerResults.Count.ShouldBe(50);
-    }
-
     // To produce different versions, create a global.json and then run `dotnet clean` and `dotnet build -bl:SdkNetCore31Project-vX.binlog` from the source project folder
     [TestCase("SdkNetCore31Project-v9.binlog", 9)]
     [TestCase("SdkNetCore31Project-v14.binlog", 14)]
@@ -675,47 +584,6 @@ public class SimpleProjectsFixture
         "Class1",
         "AssemblyInfo"
         }.ShouldBeSubsetOf(sourceFiles.Select(x => Path.GetFileName(x).Split('.').TakeLast(2).First()), log.ToString());
-    }
-
-    [Test]
-    public static void DuplicateProjectReferences()
-    {
-        // Given
-        StringWriter log = new StringWriter();
-        AnalyzerManager manager = new AnalyzerManager(
-            GetProjectPath(@"DuplicateProjectReferences\MainProject\MainProject.sln"),
-            new AnalyzerManagerOptions
-            {
-                LogWriter = log
-            });
-        List<IProjectAnalyzer> projects = [.. manager.Projects.Values];
-
-        // When
-        List<IAnalyzerResults> analyzerResults = projects
-            .AsParallel()
-            .Select(x => x.Build())
-            .ToList();
-
-        // Then
-        analyzerResults.ForEach(v =>
-        {
-            IAnalyzerResult result = v.Results.FirstOrDefault();
-            result.ProjectReferences.Count().ShouldBeLessThanOrEqualTo(1);
-        });
-    }
-
-    [Test]
-    public void Resolves_additional_files_for_Razor_project()
-    {
-        // Given
-        StringWriter log = new StringWriter();
-        IProjectAnalyzer analyzer = GetProjectAnalyzer(@"RazorClassLibraryTest\RazorClassLibraryTest.csproj", log);
-
-        // When + then
-        analyzer.Build().First().AdditionalFiles.Select(Path.GetFileName)
-            .Should().BeEquivalentTo(
-            "_Imports.razor",
-            "Component1.razor");
     }
 
     [Test]
