@@ -6,10 +6,10 @@ on:
       - completed
 jobs:
   report:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-latest, blacksmith-4vcpu-ubuntu-2404, macos-latest]
     steps:
       - name: Process Test Results
         uses: dorny/test-reporter@v1
